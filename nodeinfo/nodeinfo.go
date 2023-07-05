@@ -1,12 +1,6 @@
-package main
+package nodeinfo
 
-import (
-	"encoding/json"
-	"fmt"
-	"github.com/wrkode/asbuilt-research/util"
-	"log"
-	"time"
-)
+import "time"
 
 type NodesInfo struct {
 	Cluster string `json:"cluster"`
@@ -215,56 +209,4 @@ type NodesInfo struct {
 			} `json:"taints"`
 		} `json:"spec,omitempty"`
 	} `json:"nodes"`
-}
-
-func main() {
-	// This should be the JSON data you want to parse.
-	// Fetch JSON data
-	jsonData, err := util.FetchClustersJSON()
-	if err != nil {
-		log.Fatalf("Error fetching nodes: %v", err)
-	}
-	//fmt.Println(string(jsonData))
-	//
-	// Unmarshal the JSON data into the struct.
-	var data NodesInfo
-	err = json.Unmarshal(jsonData, &data) // jsonData is already []byte, so no need to cast it again
-	if err != nil {
-		log.Fatalf("Error unmarshalling JSON: %v", err)
-	}
-	for _, item := range data.Items {
-		fmt.Printf("Cluster Name:         %s\n", item.Metadata.Annotations.ClusterXK8SIoClusterName)
-		fmt.Printf("Instance Type:        %s\n", item.Metadata.Labels.NodeKubernetesIoInstanceType)
-		fmt.Printf("Cluster Machine Name: %s\n", item.Metadata.Annotations.ClusterXK8SIoMachine)
-		fmt.Printf("Cluster Node Name:    %s\n", item.Metadata.Name)
-		fmt.Printf("Operating System:     %s\n", item.Status.NodeInfo.OperatingSystem)
-		fmt.Printf("OS Image:             %s\n", item.Status.NodeInfo.OsImage)
-		fmt.Printf("Node Arch:            %s\n", item.Status.NodeInfo.Architecture)
-		fmt.Printf("Kernel Version:       %s\n", item.Status.NodeInfo.KernelVersion)
-		fmt.Printf("System UUID:          %s\n", item.Status.NodeInfo.SystemUUID)
-		fmt.Printf("Container Runtime:    %s\n", item.Status.NodeInfo.ContainerRuntimeVersion)
-		fmt.Printf("Kube Version:         %s\n", item.Status.NodeInfo.KubeletVersion)
-		fmt.Printf("KubeProxy Version:    %s\n", item.Status.NodeInfo.KubeProxyVersion)
-		fmt.Printf("Node Args:            %s\n", item.Metadata.Annotations.Rke2IoNodeArgs)
-		fmt.Println("Pod CIDR:                   ", item.Spec.PodCIDR)
-		fmt.Printf("Pod Limits:           %s\n", item.Metadata.Annotations.ManagementCattleIoPodLimits)
-		fmt.Printf("Pod Requests:         %s\n", item.Metadata.Annotations.ManagementCattleIoPodRequests)
-		fmt.Println(" --- Allocatable ---")
-		fmt.Printf("CPU:                 %s\n", item.Status.Allocatable.CPU)
-		fmt.Printf("Memory:              %s\n", item.Status.Allocatable.Memory)
-		fmt.Printf("Ephemeral Storage:   %s\n", item.Status.Allocatable.EphemeralStorage)
-		fmt.Printf("Pods:                %s\n", item.Status.Allocatable.Pods)
-		fmt.Println()
-		fmt.Printf("###### Messages %s #######\n", item.Metadata.Name)
-		for _, condition := range item.Status.Conditions {
-			fmt.Println("  Condition Type:", condition.Type)
-			fmt.Println("    Last Heartbeat Time:", condition.LastHeartbeatTime)
-			fmt.Println("    Last Transition Time:", condition.LastTransitionTime)
-			fmt.Println("    Message:", condition.Message)
-			fmt.Println("    Reason:", condition.Reason)
-			fmt.Println("    Status:", condition.Status)
-		}
-		fmt.Println()
-		//fmt.Println(out.String())
-	}
 }
