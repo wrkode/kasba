@@ -1,4 +1,4 @@
-module github.com/wrkode/asbuilt-research
+module github.com/wrkode/kasba
 
 go 1.19
 
