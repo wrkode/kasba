@@ -2,10 +2,12 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"github.com/wrkode/kasba/nodeinfo"
 	"github.com/wrkode/kasba/util"
 	"log"
+	"os"
 )
 
 /*
@@ -219,8 +221,11 @@ import (
 	}
 */
 func main() {
+	flag.Parse()
+	kubeconfig := util.GetKubeConfigPath()
+
 	// Fetch JSON data
-	jsonData, err := util.FetchClustersJSON()
+	jsonData, err := util.FetchClustersJSON(kubeconfig)
 	if err != nil {
 		log.Fatalf("Error fetching nodes: %v", err)
 	}
@@ -266,4 +271,20 @@ func main() {
 		fmt.Println()
 		//fmt.Println(out.String())
 	}
+	deploymentNames, err := util.GetDeployments(kubeconfig)
+	if err != nil {
+		fmt.Println("Error:", err)
+		os.Exit(1)
+	}
+	fmt.Println("--- Deployments ---")
+	for _, name := range deploymentNames {
+		fmt.Println("name:", name)
+	}
+	networkPluginPodName, err := util.GetNetworkPluginPodName(kubeconfig)
+	if err != nil {
+		fmt.Println("Error:", err)
+		os.Exit(1)
+	}
+
+	fmt.Println("Network Plugin Pod Name:", networkPluginPodName)
 }
