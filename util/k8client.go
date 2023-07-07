@@ -20,7 +20,7 @@ type ClusterNodes struct {
 	Cluster string    `json:"cluster"` // Name of the cluster
 	Nodes   []v1.Node `json:"nodes"`   // List of nodes in the cluster
 }
-
+// GetKubeConfigPath gather active kubeconfig TODO: Implement path flag
 func GetKubeConfigPath() string {
 	var kubeconfig *string
 	if home := homedir.HomeDir(); home != "" {
@@ -32,8 +32,53 @@ func GetKubeConfigPath() string {
 	return *kubeconfig
 }
 
-// GetDeployments lists the deployments in all namespaces.
-func GetDeployments(kubeconfig string) ([]string, error) {
+// NamespaceExists checks if the given namespace exists in the cluster.
+func NamespaceExists(kubeconfig, namespaceName string) (bool, error) {
+	var config *rest.Config
+	var err error
+
+	// build config from flags
+	if kubeconfig != "" {
+		config, err = clientcmd.BuildConfigFromFlags("", kubeconfig)
+	} else {
+		config, err = rest.InClusterConfig()
+	}
+
+	// handle config error
+	if err != nil {
+		return false, fmt.Errorf("failed to build config: %v", err)
+	}
+
+	// creates the clientset
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return false, fmt.Errorf("failed to create clientset: %v", err)
+	}
+
+	// get namespaces
+	namespaces, err := clientset.CoreV1().Namespaces().List(context.Background(), metav1.ListOptions{})
+	if err != nil {
+		return false, fmt.Errorf("failed to get namespaces: %v", err)
+	}
+
+	// check if the desired namespace exists
+	for _, ns := range namespaces.Items {
+		if ns.Name == namespaceName {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
+type DeploymentInfo struct {
+	Name      string
+	Namespace string
+}
+
+// GetDeployments lists the deployments in all namespaces and returns them with names and namespaces.
+func GetDeployments(kubeconfig string) ([]DeploymentInfo, error) {
+
 	var config *rest.Config
 	var err error
 
@@ -57,12 +102,15 @@ func GetDeployments(kubeconfig string) ([]string, error) {
 		return nil, err
 	}
 
-	var deploymentNames []string
+	var deploymentInfoList []DeploymentInfo
 	for _, deployment := range deployments.Items {
-		deploymentNames = append(deploymentNames, deployment.Name)
+		deploymentInfoList = append(deploymentInfoList, DeploymentInfo{
+			Name:      deployment.Name,
+			Namespace: deployment.Namespace,
+		})
 	}
 
-	return deploymentNames, nil
+	return deploymentInfoList, nil
 }
 
 // GetNetworkPluginPodName determines which CNI is deployed by explicitly searching for Calico|Cilium pods
@@ -98,7 +146,7 @@ func GetNetworkPluginPodName(kubeconfig string) (string, error) {
 		}
 	}
 
-	return "", fmt.Errorf("No matching pod found")
+	return "", fmt.Errorf("Unable to detect CNI - is this K3s ??")
 }
 
 // FetchClustersJSON fetches node information for the active context in kubeconfig and returns it as JSON.
