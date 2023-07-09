@@ -5,14 +5,15 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"k8s.io/api/core/v1"
+	"path/filepath"
+	"strings"
+
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
-	"path/filepath"
-	"strings"
 )
 
 // ClusterNodes represents the structure of data to be marshalled into JSON
@@ -20,7 +21,8 @@ type ClusterNodes struct {
 	Cluster string    `json:"cluster"` // Name of the cluster
 	Nodes   []v1.Node `json:"nodes"`   // List of nodes in the cluster
 }
-// GetKubeConfigPath gather active kubeconfig TODO: Implement path flag
+
+// GetKubeConfigPath gathers/uses active kubeconfig TODO: Implement path flag
 func GetKubeConfigPath() string {
 	var kubeconfig *string
 	if home := homedir.HomeDir(); home != "" {
@@ -76,7 +78,7 @@ type DeploymentInfo struct {
 	Namespace string
 }
 
-// GetDeployments lists the deployments in all namespaces and returns them with names and namespaces.
+// GetDeployments lists the deployments in all namespaces and returns them with NAMES and NAMESPACE.
 func GetDeployments(kubeconfig string) ([]DeploymentInfo, error) {
 
 	var config *rest.Config
@@ -113,7 +115,7 @@ func GetDeployments(kubeconfig string) ([]DeploymentInfo, error) {
 	return deploymentInfoList, nil
 }
 
-// GetNetworkPluginPodName determines which CNI is deployed by explicitly searching for Calico|Cilium pods
+// GetNetworkPluginPodName determines which CNI is deployed by explicitly searching for Calico|Cilium pods. K3s Will return an error.
 func GetNetworkPluginPodName(kubeconfig string) (string, error) {
 	var config *rest.Config
 	var err error
