@@ -24,9 +24,77 @@ type ClusterNodes struct {
 }
 
 type KubeConfig struct {
-	kubeconfig *string
-	config     *rest.Config
-	clientset  *kubernetes.Clientset
+	kubeconfig   *string
+	config       *rest.Config
+	clientset    *kubernetes.Clientset
+	workloadlist []WorkloadListItem
+}
+
+type WorkloadListItem struct {
+	Name      string
+	Namespace string
+	Type      string
+}
+
+type WorkloadInfoAppType struct {
+	WorkloadType string
+	Workloads    []string
+}
+
+type WorkloadInfoNamespace struct {
+	Namespace     string
+	WorkloadTypes []WorkloadInfoAppType
+}
+
+type WorkloadInfo struct {
+	Namespaces []WorkloadInfoNamespace
+}
+
+func (a *WorkloadInfo) Add(namespace string, appType string, name string) {
+	if len(a.Namespaces) == 0 {
+		a.Namespaces = []WorkloadInfoNamespace{{
+			Namespace: namespace,
+			WorkloadTypes: []WorkloadInfoAppType{{
+				WorkloadType: appType,
+				Workloads:    []string{name},
+			}},
+		}}
+	} else {
+		nsFound := false
+		for nsIndex, ns := range a.Namespaces {
+			if namespace == ns.Namespace {
+				nsFound = true
+				atFound := false
+				for atIndex, at := range ns.WorkloadTypes {
+					if appType == at.WorkloadType {
+						atFound = true
+						a.Namespaces[nsIndex].WorkloadTypes[atIndex].Workloads = append(ns.WorkloadTypes[atIndex].Workloads, name)
+					}
+				}
+				// new WorkloadType
+				if !atFound {
+					a.Namespaces[nsIndex].WorkloadTypes = append(a.Namespaces[nsIndex].WorkloadTypes,
+						WorkloadInfoAppType{
+							WorkloadType: appType,
+							Workloads:    []string{name},
+						},
+					)
+				}
+			}
+		}
+		// new Namespace
+		if !nsFound {
+			a.Namespaces = append(a.Namespaces, WorkloadInfoNamespace{
+				Namespace: namespace,
+				WorkloadTypes: []WorkloadInfoAppType{{
+					WorkloadType: appType,
+					Workloads:    []string{name},
+				}},
+			},
+			)
+		}
+
+	}
 }
 
 // GetKubeConfigPath gathers/uses active kubeconfig TODO: Implement path flag
@@ -79,27 +147,53 @@ func (k *KubeConfig) NamespaceExists(namespaceName string) (bool, error) {
 	return false, nil
 }
 
-type DeploymentInfo struct {
-	Name      string
-	Namespace string
-}
-
 // GetDeployments lists the deployments in all namespaces and returns them with NAMES and NAMESPACE.
-func (k *KubeConfig) GetDeployments() ([]DeploymentInfo, error) {
-	deployments, err := k.clientset.AppsV1().Deployments(metav1.NamespaceAll).List(context.Background(), metav1.ListOptions{})
-	if err != nil {
-		return nil, err
-	}
-
-	var deploymentInfoList []DeploymentInfo
-	for _, deployment := range deployments.Items {
-		deploymentInfoList = append(deploymentInfoList, DeploymentInfo{
-			Name:      deployment.Name,
-			Namespace: deployment.Namespace,
+func (k *KubeConfig) GetDeployments() {
+	list, _ := k.clientset.AppsV1().Deployments(metav1.NamespaceAll).List(context.Background(), metav1.ListOptions{})
+	for _, listItem := range list.Items {
+		k.workloadlist = append(k.workloadlist, WorkloadListItem{
+			Name:      listItem.Name,
+			Namespace: listItem.Namespace,
+			Type:      "Deployments",
 		})
 	}
+}
 
-	return deploymentInfoList, nil
+// GetDaemonSets lists the daemonsets in all namespaces and returns them with NAMES and NAMESPACE.
+func (k *KubeConfig) GetDaemonSets() {
+	list, _ := k.clientset.AppsV1().DaemonSets(metav1.NamespaceAll).List(context.Background(), metav1.ListOptions{})
+	for _, listItem := range list.Items {
+		k.workloadlist = append(k.workloadlist, WorkloadListItem{
+			Name:      listItem.Name,
+			Namespace: listItem.Namespace,
+			Type:      "DaemonSets",
+		})
+	}
+}
+
+// GetStatefulSets lists the statefulsets in all namespaces and returns them with NAMES and NAMESPACE.
+func (k *KubeConfig) GetStatefulSets() {
+	list, _ := k.clientset.AppsV1().StatefulSets(metav1.NamespaceAll).List(context.Background(), metav1.ListOptions{})
+	for _, listItem := range list.Items {
+		k.workloadlist = append(k.workloadlist, WorkloadListItem{
+			Name:      listItem.Name,
+			Namespace: listItem.Namespace,
+			Type:      "StatefulSets",
+		})
+	}
+}
+
+// GetWorkloads List all the apps running on the cluster, sorted by namespace and type
+func (k *KubeConfig) GetWorkloads() (WorkloadInfo, error) {
+	var workloadInfo WorkloadInfo
+	k.GetDeployments()
+	k.GetDaemonSets()
+	k.GetStatefulSets()
+	for _, a := range k.workloadlist {
+		workloadInfo.Add(a.Namespace, a.Type, a.Name)
+	}
+	return workloadInfo, nil
+
 }
 
 // GetNetworkPluginPodName determines which CNI is deployed by explicitly searching for Calico|Cilium pods. K3s Will return an error.
