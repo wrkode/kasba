@@ -58,7 +58,7 @@ func GetInfo() {
 		fmt.Println("Error checking if Longhorn is installed: ", err)
 	}
 
-	templateData.AppsInfo, err = kubeconfig.GetWorkloads()
+	templateData.WorkloadInfo, err = kubeconfig.GetWorkloads()
 	if err != nil {
 		fmt.Printf("Error getting apps %v\n:", err)
 	}

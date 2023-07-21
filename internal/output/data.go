@@ -12,6 +12,6 @@ type TemplateData struct {
 	NodeInfo      nodeinfo.NodesInfo
 	NetworkPlugin string
 	Longhorn      bool
-	AppsInfo      util.WorkloadInfo
+	WorkloadInfo  util.WorkloadInfo
 	Errors        util.Errors
 }

@@ -61,7 +61,7 @@ Pods:                 {{ $item.Status.Allocatable.Pods }}
 {{ end }}
 
 --- Workload ---
-{{ range $index, $namespace := .AppsInfo.Namespaces -}}
+{{ range $index, $namespace := .WorkloadInfo.Namespaces -}}
 Namespace: {{ $namespace.Namespace }}
   {{- range $index, $apptype := $namespace.WorkloadTypes }}
   {{ $apptype.WorkloadType }}:

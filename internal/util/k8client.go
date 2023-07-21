@@ -185,14 +185,14 @@ func (k *KubeConfig) GetStatefulSets() {
 
 // GetWorkloads List all the apps running on the cluster, sorted by namespace and type
 func (k *KubeConfig) GetWorkloads() (WorkloadInfo, error) {
-	var appsInfo WorkloadInfo
+	var workloadInfo WorkloadInfo
 	k.GetDeployments()
 	k.GetDaemonSets()
 	k.GetStatefulSets()
 	for _, a := range k.workloadlist {
-		appsInfo.Add(a.Namespace, a.Type, a.Name)
+		workloadInfo.Add(a.Namespace, a.Type, a.Name)
 	}
-	return appsInfo, nil
+	return workloadInfo, nil
 
 }
 
