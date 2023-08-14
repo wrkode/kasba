@@ -70,6 +70,21 @@ func GetInfo() {
 		fmt.Printf("Error getting apps %v\n:", err)
 	}
 
+	templateData.StorageClass, err = kubeconfig.GetStorageClasses()
+	if err != nil {
+		fmt.Printf("Error getting Storage Classes %v\n:", err)
+	}
+
+	templateData.PersistentVolumes, err = kubeconfig.GetPersistentVolumes()
+	if err != nil {
+		fmt.Printf("Error getting Persistent Volumes %v\n", err)
+	}
+
+	templateData.PersistentVolumeClaims, err = kubeconfig.GetPersistentVolumeClaims()
+	if err != nil {
+		fmt.Printf("Error getting Persistent Volume Claims %v\n", err)
+	}
+
 	// Write call to GetPersistentVolumes()
 
 }

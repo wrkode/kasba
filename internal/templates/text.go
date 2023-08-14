@@ -73,6 +73,37 @@ Namespace: {{ $namespace.Namespace }}
 
 {{ end }}
 
-{{ end -}}
+--- Storage ---
+{{ range $index, $sc := .StorageClass -}}
+Name: {{ $sc.Name }}
+Provisioner: {{ $sc.Provisioner }}
+Parameters:
+{{ range $key, $value := $sc.Parameters }}
+  {{ $key }}: {{ $value }}
+{{- end }}
+{{- end }}
 
+--- Persistent Volumes ---
+{{ range $index, $pv := .PersistentVolumes -}}
+Name: {{ $pv.Name }}
+Type: {{ $pv.Type }}
+Capacity: {{ index $pv.Size }}
+{{ range $index, $mode := $pv.AccessModes }}
+Access Mode: {{ $mode }}
+{{- end }}
+Reclamation Policy: {{ $pv.ReclamationPolicy }}
+{{- end }}
+
+--- Persistent Volume Claims ---
+{{ range $index, $pvc := .PersistentVolumeClaims -}}
+Namespace:    {{ $pvc.Namespace }}
+Name:         {{ $pvc.Name}}
+Status:       {{ $pvc.Status  }}
+Volume        {{ $pvc.Volume  }}
+Capacity:     {{ $pvc.Capacity }}
+AccessModes:  {{ $pvc.AccessModes }}
+StorageClass: {{ $pvc.StorageClass }}
+Age:          {{ $pvc.Age }}
+{{- end }}
+{{ end -}}
 `

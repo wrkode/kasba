@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/wrkode/kasba/internal/nodeinfo"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"path/filepath"
 	"strings"
 
@@ -48,6 +49,32 @@ type WorkloadInfoNamespace struct {
 
 type WorkloadInfo struct {
 	Namespaces []WorkloadInfoNamespace
+}
+
+type StorageClassItem struct {
+	Name        string
+	Provisioner string
+	Parameters  map[string]string
+}
+
+type PersistentVolumeItem struct {
+	Name              string
+	Namespace         string
+	Type              string
+	Size              resource.Quantity
+	AccessModes       []v1.PersistentVolumeAccessMode
+	ReclamationPolicy v1.PersistentVolumeReclaimPolicy
+}
+
+type PersistentVolumeClaimItem struct {
+	Namespace    string
+	Name         string
+	Status       v1.PersistentVolumeClaimPhase
+	Volume       string
+	Capacity     resource.Quantity
+	AccessModes  []v1.PersistentVolumeAccessMode
+	StorageClass string
+	Age          metav1.Time
 }
 
 func (a *WorkloadInfo) Add(namespace string, appType string, name string) {
@@ -252,4 +279,73 @@ func (k *KubeConfig) GetNodeInfo() (nodeinfo.NodesInfo, error) {
 	}
 
 	return data, nil
+}
+
+// GetStorageClasses lists the storage classes in the cluster and returns them.
+func (k *KubeConfig) GetStorageClasses() ([]StorageClassItem, error) {
+	list, err := k.clientset.StorageV1().StorageClasses().List(context.Background(), metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	var storageClasses []StorageClassItem
+	for _, listItem := range list.Items {
+		sc := StorageClassItem{
+			Name:        listItem.Name,
+			Provisioner: listItem.Provisioner,
+			Parameters:  listItem.Parameters,
+		}
+		storageClasses = append(storageClasses, sc)
+	}
+	return storageClasses, nil
+}
+
+// GetPersistentVolumes lists the Persistent Volumes available in the cluster and returns them.
+func (k *KubeConfig) GetPersistentVolumes() ([]PersistentVolumeItem, error) {
+	list, err := k.clientset.CoreV1().PersistentVolumes().List(context.Background(), metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	var persistentVolumes []PersistentVolumeItem
+	for _, listItem := range list.Items {
+		size, exists := listItem.Spec.Capacity["storage"]
+		if !exists {
+			continue // skip this PV if it doesn't have a storage size defined
+		}
+
+		pv := PersistentVolumeItem{
+			Name:              listItem.Name,
+			Type:              "PersistentVolumes",
+			Size:              size,
+			AccessModes:       listItem.Spec.AccessModes,
+			ReclamationPolicy: listItem.Spec.PersistentVolumeReclaimPolicy,
+		}
+		persistentVolumes = append(persistentVolumes, pv)
+	}
+	return persistentVolumes, nil
+}
+
+// GetPersistentVolumeClaims lists all the Persistent Volume Claims across all namespaces.
+func (k *KubeConfig) GetPersistentVolumeClaims() ([]PersistentVolumeClaimItem, error) {
+	list, err := k.clientset.CoreV1().PersistentVolumeClaims(metav1.NamespaceAll).List(context.Background(), metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	var persistentVolumeClaims []PersistentVolumeClaimItem
+	for _, listItem := range list.Items {
+		pvc := PersistentVolumeClaimItem{
+			Namespace:    listItem.Namespace,
+			Name:         listItem.Name,
+			Status:       listItem.Status.Phase,
+			Volume:       listItem.Spec.VolumeName,
+			Capacity:     listItem.Status.Capacity[v1.ResourceStorage],
+			AccessModes:  listItem.Status.AccessModes,
+			StorageClass: *listItem.Spec.StorageClassName,
+			Age:          listItem.CreationTimestamp,
+		}
+		persistentVolumeClaims = append(persistentVolumeClaims, pvc)
+	}
+	return persistentVolumeClaims, nil
 }
