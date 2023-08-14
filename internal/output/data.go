@@ -17,5 +17,6 @@ type TemplateData struct {
 	StorageClass           []util.StorageClassItem
 	PersistentVolumes      []util.PersistentVolumeItem
 	PersistentVolumeClaims []util.PersistentVolumeClaimItem
+	ConfigMaps             []util.ConfigMapItem
 	Errors                 util.Errors
 }

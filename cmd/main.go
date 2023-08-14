@@ -85,7 +85,10 @@ func GetInfo() {
 		fmt.Printf("Error getting Persistent Volume Claims %v\n", err)
 	}
 
-	// Write call to GetPersistentVolumes()
+	templateData.ConfigMaps, err = kubeconfig.GetConfigMaps()
+	if err != nil {
+		fmt.Printf("Error getting ConfigMaps %v\n", err)
+	}
 
 }
 

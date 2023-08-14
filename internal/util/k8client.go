@@ -77,6 +77,13 @@ type PersistentVolumeClaimItem struct {
 	Age          metav1.Time
 }
 
+type ConfigMapItem struct {
+	Namespace string
+	Name      string
+	Data      map[string]string
+	Age       metav1.Time
+}
+
 func (a *WorkloadInfo) Add(namespace string, appType string, name string) {
 	if len(a.Namespaces) == 0 {
 		a.Namespaces = []WorkloadInfoNamespace{{
@@ -348,4 +355,24 @@ func (k *KubeConfig) GetPersistentVolumeClaims() ([]PersistentVolumeClaimItem, e
 		persistentVolumeClaims = append(persistentVolumeClaims, pvc)
 	}
 	return persistentVolumeClaims, nil
+}
+
+// GetConfigMaps lists all the ConfigMaps across all namespaces.
+func (k *KubeConfig) GetConfigMaps() ([]ConfigMapItem, error) {
+	list, err := k.clientset.CoreV1().ConfigMaps(metav1.NamespaceAll).List(context.Background(), metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	var configMaps []ConfigMapItem
+	for _, listItem := range list.Items {
+		cm := ConfigMapItem{
+			Namespace: listItem.Namespace,
+			Name:      listItem.Name,
+			Data:      listItem.Data,
+			Age:       listItem.CreationTimestamp,
+		}
+		configMaps = append(configMaps, cm)
+	}
+	return configMaps, nil
 }
