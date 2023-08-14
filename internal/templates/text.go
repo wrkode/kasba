@@ -26,6 +26,7 @@ Instance Type:        {{ (index .NodeInfo.Items 0).Metadata.Labels.NodeKubernete
 K8s Version:          {{ (index .NodeInfo.Items 0).Status.NodeInfo.KubeletVersion }}
 
 CNI:                  {{ .NetworkPlugin }}
+Monitoring Installed: {{ .Monitoring }}
 Longhorn installed:   {{ .Longhorn }}
 
 {{ range $index, $item := .NodeInfo.Items }}

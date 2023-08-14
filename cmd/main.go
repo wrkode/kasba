@@ -58,6 +58,13 @@ func GetInfo() {
 		fmt.Println("Error checking if Longhorn is installed: ", err)
 	}
 
+	templateData.Monitoring, err = kubeconfig.NamespaceExists("cattle-monitoring-system")
+	errors.Add(err, false)
+
+	if err != nil {
+		fmt.Println("Error checking if Rancher Monitoring is installed: ", err)
+	}
+
 	templateData.WorkloadInfo, err = kubeconfig.GetWorkloads()
 	if err != nil {
 		fmt.Printf("Error getting apps %v\n:", err)
