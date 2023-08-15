@@ -374,6 +374,17 @@ func (k *KubeConfig) GetAllIngresses() ([]IngressItem, error) {
 			}
 		}
 
+		// Fetch addresses
+		var addresses []string
+		for _, addr := range ing.Status.LoadBalancer.Ingress {
+			if addr.IP != "" {
+				addresses = append(addresses, addr.IP)
+			}
+			if addr.Hostname != "" {
+				addresses = append(addresses, addr.Hostname)
+			}
+		}
+
 		// Calculate Age
 		ageInSeconds := time.Since(ing.ObjectMeta.CreationTimestamp.Time).Seconds()
 		ageInDays := int(ageInSeconds / (60 * 60 * 24))
@@ -383,6 +394,7 @@ func (k *KubeConfig) GetAllIngresses() ([]IngressItem, error) {
 			Name:           ing.Name,
 			Hosts:          rules,
 			DefaultBackend: defaultBackend,
+			Addresses:      addresses, // Added this
 			Age:            ageInDays,
 		}
 		ingresses = append(ingresses, ingressItem)

@@ -93,7 +93,10 @@ func GetInfo() {
 	if err != nil {
 		fmt.Printf("Error getting Serices %v\n", err)
 	}
-
+	templateData.Ingresses, err = kubeconfig.GetAllIngresses()
+	if err != nil {
+		fmt.Printf("Error getting Ingresses %v\n", err)
+	}
 }
 
 func Run() {

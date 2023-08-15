@@ -138,17 +138,29 @@ Namespace: {{ $serviceItem.Namespace }}
     Age:       {{ $serviceItem.Age }}d
 {{- end }}
 
-  Ingresses:
+Ingresses:
 {{- $currentNamespace := "" -}}
 {{- range $index, $ingressItem := .Ingresses -}}
 {{- if ne $ingressItem.Namespace $currentNamespace }}
 Namespace: {{ $ingressItem.Namespace }}
-{{ $currentNamespace = $ingressItem.Namespace }}{{/* This is the main adjustment to the variable assignment */}}
+{{- $currentNamespace = $ingressItem.Namespace -}}
 {{- end }}
     Name: {{ $ingressItem.Name }}
-      Hosts: {{ $ingressItem.Hosts }}
-      DefaultBackend: {{ $ingressItem.DefaultBackend }}
+      Hosts: 
+      {{- range $hostIndex, $host := $ingressItem.Hosts }}
+      - Host: {{ $host.Host }}
+        Paths:
+        {{- range $pathIndex, $path := $host.Paths }}
+        - {{ $path }}
+        {{- end }}
+      {{- end }}
+      DefaultBackend: Service: {{ $ingressItem.DefaultBackend.ServiceName }}, Port: {{ $ingressItem.DefaultBackend.ServicePort }}
+      Addresses:
+      {{- range $addressIndex, $address := $ingressItem.Addresses}}
+      - {{ $address }}
+      {{- end }}
       Age: {{ $ingressItem.Age }}d
 {{- end }}
 {{- end }}
+
 `
