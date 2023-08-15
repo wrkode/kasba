@@ -19,5 +19,6 @@ type TemplateData struct {
 	PersistentVolumeClaims []util.PersistentVolumeClaimItem
 	ConfigMaps             []util.ConfigMapItem
 	Services               []util.ServiceItem
+	Ingresses              []util.IngressItem
 	Errors                 util.Errors
 }

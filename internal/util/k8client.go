@@ -95,6 +95,26 @@ type ServiceItem struct {
 	Age        int
 }
 
+// IngressBackendDetail is used to capture the backend service and port
+type IngressBackendDetail struct {
+	ServiceName string
+	ServicePort string
+}
+
+// IngressRuleDetail captures the hosts and paths for a rule
+type IngressRuleDetail struct {
+	Host  string
+	Paths []string
+}
+
+// IngressItem represents an Ingress in the cluster
+type IngressItem struct {
+	Namespace string
+	Name      string
+	Hosts     []IngressRuleDetail
+	DefaultBackend IngressBackendDetail // This will capture the default backend, if any
+	Age       int
+}
 func (a *WorkloadInfo) Add(namespace string, appType string, name string) {
 	if len(a.Namespaces) == 0 {
 		a.Namespaces = []WorkloadInfoNamespace{{
@@ -419,4 +439,49 @@ func (k *KubeConfig) GetAllServices() ([]ServiceItem, error) {
 		services = append(services, serviceItem)
 	}
 	return services, nil
+}
+
+// GetAllIngresses lists all Ingresses across all namespaces.
+func (k *KubeConfig) GetAllIngresses() ([]IngressItem, error) {
+	ingList, err := k.clientset.NetworkingV1().Ingresses(metav1.NamespaceAll).List(context.Background(), metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	var ingresses []IngressItem
+	for _, ing := range ingList.Items {
+		var rules []IngressRuleDetail
+		for _, rule := range ing.Spec.Rules {
+			var paths []string
+			for _, path := range rule.HTTP.Paths {
+				paths = append(paths, path.Path)
+			}
+			rules = append(rules, IngressRuleDetail{
+				Host:  rule.Host,
+				Paths: paths,
+			})
+		}
+
+		var defaultBackend IngressBackendDetail
+		if ing.Spec.DefaultBackend != nil {
+			defaultBackend = IngressBackendDetail{
+				ServiceName: ing.Spec.DefaultBackend.Service.Name,
+				ServicePort: ing.Spec.DefaultBackend.Service.Port.String(),
+			}
+		}
+
+		// Calculate Age
+		ageInSeconds := time.Since(ing.ObjectMeta.CreationTimestamp.Time).Seconds()
+		ageInDays := int(ageInSeconds / (60 * 60 * 24))
+
+		ingressItem := IngressItem{
+			Namespace:      ing.Namespace,
+			Name:           ing.Name,
+			Hosts:          rules,
+			DefaultBackend: defaultBackend,
+			Age:            ageInDays,
+		}
+		ingresses = append(ingresses, ingressItem)
+	}
+	return ingresses, nil
 }

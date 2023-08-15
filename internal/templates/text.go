@@ -137,5 +137,18 @@ Namespace: {{ $serviceItem.Namespace }}
     {{- end }}
     Age:       {{ $serviceItem.Age }}d
 {{- end }}
+
+  Ingresses:
+{{- $currentNamespace := "" -}}
+{{- range $index, $ingressItem := .Ingresses -}}
+{{- if ne $ingressItem.Namespace $currentNamespace }}
+Namespace: {{ $ingressItem.Namespace }}
+{{ $currentNamespace = $ingressItem.Namespace }}{{/* This is the main adjustment to the variable assignment */}}
+{{- end }}
+    Name: {{ $ingressItem.Name }}
+      Hosts: {{ $ingressItem.Hosts }}
+      DefaultBackend: {{ $ingressItem.DefaultBackend }}
+      Age: {{ $ingressItem.Age }}d
+{{- end }}
 {{- end }}
 `
