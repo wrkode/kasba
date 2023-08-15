@@ -6,7 +6,6 @@ import (
 	"flag"
 	"fmt"
 	"github.com/wrkode/kasba/internal/nodeinfo"
-	"k8s.io/apimachinery/pkg/api/resource"
 	"path/filepath"
 	"strings"
 	"time"
@@ -19,102 +18,7 @@ import (
 	"k8s.io/client-go/util/homedir"
 )
 
-// ClusterNodes represents the structure of data to be marshalled into JSON
-type ClusterNodes struct {
-	Cluster string    `json:"cluster"` // Name of the cluster
-	Nodes   []v1.Node `json:"nodes"`   // List of nodes in the cluster
-}
 
-type KubeConfig struct {
-	kubeconfig   *string
-	config       *rest.Config
-	clientset    *kubernetes.Clientset
-	workloadlist []WorkloadListItem
-}
-
-type WorkloadListItem struct {
-	Name      string
-	Namespace string
-	Type      string
-}
-
-type WorkloadInfoAppType struct {
-	WorkloadType string
-	Workloads    []string
-}
-
-type WorkloadInfoNamespace struct {
-	Namespace     string
-	WorkloadTypes []WorkloadInfoAppType
-}
-
-type WorkloadInfo struct {
-	Namespaces []WorkloadInfoNamespace
-}
-
-type StorageClassItem struct {
-	Name        string
-	Provisioner string
-	Parameters  map[string]string
-}
-
-type PersistentVolumeItem struct {
-	Name              string
-	Namespace         string
-	Type              string
-	Size              resource.Quantity
-	AccessModes       []v1.PersistentVolumeAccessMode
-	ReclamationPolicy v1.PersistentVolumeReclaimPolicy
-}
-
-type PersistentVolumeClaimItem struct {
-	Namespace    string
-	Name         string
-	Status       v1.PersistentVolumeClaimPhase
-	Volume       string
-	Capacity     resource.Quantity
-	AccessModes  []v1.PersistentVolumeAccessMode
-	StorageClass string
-	Age          metav1.Time
-}
-
-type ConfigMapItem struct {
-	Namespace string
-	Name      string
-	Data      map[string]string
-	Age       metav1.Time
-}
-
-type ServiceItem struct {
-	Namespace   string
-	Name       string
-	Type       v1.ServiceType
-	ClusterIP  string
-	ExternalIP string // This can be a list or a single IP. Improvement Required to handle multiple IPs.
-	Ports      []v1.ServicePort
-	Age        int
-}
-
-// IngressBackendDetail is used to capture the backend service and port
-type IngressBackendDetail struct {
-	ServiceName string
-	ServicePort string
-}
-
-// IngressRuleDetail captures the hosts and paths for a rule
-type IngressRuleDetail struct {
-	Host  string
-	Paths []string
-}
-
-// IngressItem represents an Ingress in the cluster
-type IngressItem struct {
-	Namespace string
-	Name      string
-	Hosts     []IngressRuleDetail
-	DefaultBackend IngressBackendDetail // This will capture the default backend, if any
-	Age       int
-}
 func (a *WorkloadInfo) Add(namespace string, appType string, name string) {
 	if len(a.Namespaces) == 0 {
 		a.Namespaces = []WorkloadInfoNamespace{{
@@ -301,7 +205,7 @@ func (k *KubeConfig) FetchClustersJSON() ([]byte, error) {
 	return jsonData, nil
 }
 
-// GetNodeInfo get nodeinfo from active context
+// GetNodeInfo get nodes info from active context
 func (k *KubeConfig) GetNodeInfo() (nodeinfo.NodesInfo, error) {
 	// Fetch JSON data
 	jsonData, err := k.FetchClustersJSON()
@@ -319,7 +223,7 @@ func (k *KubeConfig) GetNodeInfo() (nodeinfo.NodesInfo, error) {
 	return data, nil
 }
 
-// GetStorageClasses lists the storage classes in the cluster and returns them.
+// GetStorageClasses lists the Storage Classes in the cluster and returns them.
 func (k *KubeConfig) GetStorageClasses() ([]StorageClassItem, error) {
 	list, err := k.clientset.StorageV1().StorageClasses().List(context.Background(), metav1.ListOptions{})
 	if err != nil {
@@ -364,7 +268,7 @@ func (k *KubeConfig) GetPersistentVolumes() ([]PersistentVolumeItem, error) {
 	return persistentVolumes, nil
 }
 
-// GetPersistentVolumeClaims lists all the Persistent Volume Claims across all namespaces.
+// GetPersistentVolumeClaims lists all Persistent Volume Claims across all namespaces.
 func (k *KubeConfig) GetPersistentVolumeClaims() ([]PersistentVolumeClaimItem, error) {
 	list, err := k.clientset.CoreV1().PersistentVolumeClaims(metav1.NamespaceAll).List(context.Background(), metav1.ListOptions{})
 	if err != nil {
@@ -388,7 +292,7 @@ func (k *KubeConfig) GetPersistentVolumeClaims() ([]PersistentVolumeClaimItem, e
 	return persistentVolumeClaims, nil
 }
 
-// GetConfigMaps lists all the ConfigMaps across all namespaces.
+// GetConfigMaps lists all ConfigMaps across all namespaces.
 func (k *KubeConfig) GetConfigMaps() ([]ConfigMapItem, error) {
 	list, err := k.clientset.CoreV1().ConfigMaps(metav1.NamespaceAll).List(context.Background(), metav1.ListOptions{})
 	if err != nil {
