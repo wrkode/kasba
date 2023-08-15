@@ -26,6 +26,7 @@ Instance Type:        {{ (index .NodeInfo.Items 0).Metadata.Labels.NodeKubernete
 K8s Version:          {{ (index .NodeInfo.Items 0).Status.NodeInfo.KubeletVersion }}
 
 CNI:                  {{ .NetworkPlugin }}
+Monitoring Installed: {{ .Monitoring }}
 Longhorn installed:   {{ .Longhorn }}
 
 {{ range $index, $item := .NodeInfo.Items }}
@@ -72,6 +73,50 @@ Namespace: {{ $namespace.Namespace }}
 
 {{ end }}
 
-{{ end -}}
+--- Storage ---
+  Storage Classes:
+  {{- range $index, $sc := .StorageClass }}
+    - Name: {{ $sc.Name }}
+      Provisioner: {{ $sc.Provisioner }}
+      Parameters:
+      {{- range $key, $value := $sc.Parameters }}
+        {{ $key }}: {{ $value }}
+      {{- end }}
+  {{- end }}
 
+  Persistent Volumes:
+{{- range $index, $pv := .PersistentVolumes }}
+  - Name: {{ $pv.Name }}
+    Type: {{ $pv.Type }}
+    Capacity: {{ index $pv.Size }}
+    Access Modes:
+    {{- range $index, $mode := $pv.AccessModes }}
+      - {{ $mode }}
+    {{- end }}
+    Reclamation Policy: {{ $pv.ReclamationPolicy }}
+{{- end }}
+
+  Persistent Volume Claims:
+  {{- range $index, $pvc := .PersistentVolumeClaims }}
+    - Namespace: {{ $pvc.Namespace }}
+      Name: {{ $pvc.Name}}
+      Status: {{ $pvc.Status  }}
+      Volume: {{ $pvc.Volume  }}
+      Capacity: {{ $pvc.Capacity }}
+      AccessModes: {{ $pvc.AccessModes }}
+      StorageClass: {{ $pvc.StorageClass }}
+      Age: {{ $pvc.Age }}
+  {{- end }}
+
+  Config Maps:
+{{- $currentNamespace := "" -}}
+{{- range $index, $cm := .ConfigMaps -}}
+{{- if ne $cm.Namespace $currentNamespace }}
+Namespace: {{ $cm.Namespace }}
+{{- $currentNamespace = $cm.Namespace -}}
+{{- end }}
+  Name:      {{ $cm.Name }}
+  Age:       {{ $cm.Age }}
+{{- end }}
+{{- end }}
 `

@@ -6,12 +6,17 @@ import (
 )
 
 type TemplateData struct {
-	CreatedAt     string
-	BOMFormat     string
-	Version       string
-	NodeInfo      nodeinfo.NodesInfo
-	NetworkPlugin string
-	Longhorn      bool
-	WorkloadInfo  util.WorkloadInfo
-	Errors        util.Errors
+	CreatedAt              string
+	BOMFormat              string
+	Version                string
+	NodeInfo               nodeinfo.NodesInfo
+	NetworkPlugin          string
+	Longhorn               bool
+	Monitoring             bool
+	WorkloadInfo           util.WorkloadInfo
+	StorageClass           []util.StorageClassItem
+	PersistentVolumes      []util.PersistentVolumeItem
+	PersistentVolumeClaims []util.PersistentVolumeClaimItem
+	ConfigMaps             []util.ConfigMapItem
+	Errors                 util.Errors
 }
