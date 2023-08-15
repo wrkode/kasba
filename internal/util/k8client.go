@@ -9,6 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	"path/filepath"
 	"strings"
+	"time"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -82,6 +83,16 @@ type ConfigMapItem struct {
 	Name      string
 	Data      map[string]string
 	Age       metav1.Time
+}
+
+type ServiceItem struct {
+	Namespace   string
+	Name       string
+	Type       v1.ServiceType
+	ClusterIP  string
+	ExternalIP string // This can be a list or a single IP. Improvement Required to handle multiple IPs.
+	Ports      []v1.ServicePort
+	Age        int
 }
 
 func (a *WorkloadInfo) Add(namespace string, appType string, name string) {
@@ -375,4 +386,37 @@ func (k *KubeConfig) GetConfigMaps() ([]ConfigMapItem, error) {
 		configMaps = append(configMaps, cm)
 	}
 	return configMaps, nil
+}
+
+// GetAllServices lists all Services across all namespaces.
+func (k *KubeConfig) GetAllServices() ([]ServiceItem, error) {
+	svcList, err := k.clientset.CoreV1().Services(metav1.NamespaceAll).List(context.Background(), metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	var services []ServiceItem
+	for _, svc := range svcList.Items {
+		var externalIP string
+		if len(svc.Status.LoadBalancer.Ingress) > 0 {
+			externalIP = svc.Status.LoadBalancer.Ingress[0].IP
+		}
+
+		// Calculate Age in seconds
+		ageInSeconds := time.Since(svc.ObjectMeta.CreationTimestamp.Time).Seconds()
+		// Convert Age to days
+		ageInDays := int(ageInSeconds / (60 * 60 * 24)) // convert seconds to days
+
+		serviceItem := ServiceItem{
+			Namespace:   svc.Namespace,
+			Name:        svc.Name,
+			Type:        svc.Spec.Type,
+			ClusterIP:   svc.Spec.ClusterIP,
+			ExternalIP:  externalIP,
+			Ports:       svc.Spec.Ports,
+			Age:         ageInDays,
+		}
+		services = append(services, serviceItem)
+	}
+	return services, nil
 }

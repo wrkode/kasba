@@ -118,5 +118,24 @@ Namespace: {{ $cm.Namespace }}
   Name:      {{ $cm.Name }}
   Age:       {{ $cm.Age }}
 {{- end }}
+
+--- Service Discovery ---
+  Services:
+{{- $currentNamespace := "" -}}
+{{- range $index, $serviceItem := .Services -}}
+{{- if ne $serviceItem.Namespace $currentNamespace }}
+Namespace: {{ $serviceItem.Namespace }}
+{{- $currentNamespace = $serviceItem.Namespace -}}
+{{- end }}
+  Name:      {{ $serviceItem.Name }}
+    Type:      {{ $serviceItem.Type }}
+    ClusterIP: {{ $serviceItem.ClusterIP }}
+    ExternalIP: {{ if $serviceItem.ExternalIP }}{{ $serviceItem.ExternalIP }}{{ else }}<none>{{ end }}
+    Ports:     
+    {{- range $pIndex, $port := $serviceItem.Ports }}
+      {{ $port.Name }}: {{ $port.Port }}/{{ $port.Protocol }} {{ if $port.NodePort }}(NodePort: {{ $port.NodePort }}){{ end }}
+    {{- end }}
+    Age:       {{ $serviceItem.Age }}d
+{{- end }}
 {{- end }}
 `
