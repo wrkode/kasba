@@ -102,5 +102,6 @@ type IngressItem struct {
 	Name      string
 	Hosts     []IngressRuleDetail
 	DefaultBackend IngressBackendDetail // This will capture the default backend, if any
+	Addresses      []string
 	Age       int
 }
