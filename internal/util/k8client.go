@@ -6,9 +6,9 @@ import (
 	"flag"
 	"fmt"
 	"github.com/wrkode/kasba/internal/nodeinfo"
-	"k8s.io/apimachinery/pkg/api/resource"
 	"path/filepath"
 	"strings"
+	"time"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -18,71 +18,6 @@ import (
 	"k8s.io/client-go/util/homedir"
 )
 
-// ClusterNodes represents the structure of data to be marshalled into JSON
-type ClusterNodes struct {
-	Cluster string    `json:"cluster"` // Name of the cluster
-	Nodes   []v1.Node `json:"nodes"`   // List of nodes in the cluster
-}
-
-type KubeConfig struct {
-	kubeconfig   *string
-	config       *rest.Config
-	clientset    *kubernetes.Clientset
-	workloadlist []WorkloadListItem
-}
-
-type WorkloadListItem struct {
-	Name      string
-	Namespace string
-	Type      string
-}
-
-type WorkloadInfoAppType struct {
-	WorkloadType string
-	Workloads    []string
-}
-
-type WorkloadInfoNamespace struct {
-	Namespace     string
-	WorkloadTypes []WorkloadInfoAppType
-}
-
-type WorkloadInfo struct {
-	Namespaces []WorkloadInfoNamespace
-}
-
-type StorageClassItem struct {
-	Name        string
-	Provisioner string
-	Parameters  map[string]string
-}
-
-type PersistentVolumeItem struct {
-	Name              string
-	Namespace         string
-	Type              string
-	Size              resource.Quantity
-	AccessModes       []v1.PersistentVolumeAccessMode
-	ReclamationPolicy v1.PersistentVolumeReclaimPolicy
-}
-
-type PersistentVolumeClaimItem struct {
-	Namespace    string
-	Name         string
-	Status       v1.PersistentVolumeClaimPhase
-	Volume       string
-	Capacity     resource.Quantity
-	AccessModes  []v1.PersistentVolumeAccessMode
-	StorageClass string
-	Age          metav1.Time
-}
-
-type ConfigMapItem struct {
-	Namespace string
-	Name      string
-	Data      map[string]string
-	Age       metav1.Time
-}
 
 func (a *WorkloadInfo) Add(namespace string, appType string, name string) {
 	if len(a.Namespaces) == 0 {
@@ -270,7 +205,7 @@ func (k *KubeConfig) FetchClustersJSON() ([]byte, error) {
 	return jsonData, nil
 }
 
-// GetNodeInfo get nodeinfo from active context
+// GetNodeInfo get nodes info from active context
 func (k *KubeConfig) GetNodeInfo() (nodeinfo.NodesInfo, error) {
 	// Fetch JSON data
 	jsonData, err := k.FetchClustersJSON()
@@ -288,7 +223,7 @@ func (k *KubeConfig) GetNodeInfo() (nodeinfo.NodesInfo, error) {
 	return data, nil
 }
 
-// GetStorageClasses lists the storage classes in the cluster and returns them.
+// GetStorageClasses lists the Storage Classes in the cluster and returns them.
 func (k *KubeConfig) GetStorageClasses() ([]StorageClassItem, error) {
 	list, err := k.clientset.StorageV1().StorageClasses().List(context.Background(), metav1.ListOptions{})
 	if err != nil {
@@ -333,7 +268,7 @@ func (k *KubeConfig) GetPersistentVolumes() ([]PersistentVolumeItem, error) {
 	return persistentVolumes, nil
 }
 
-// GetPersistentVolumeClaims lists all the Persistent Volume Claims across all namespaces.
+// GetPersistentVolumeClaims lists all Persistent Volume Claims across all namespaces.
 func (k *KubeConfig) GetPersistentVolumeClaims() ([]PersistentVolumeClaimItem, error) {
 	list, err := k.clientset.CoreV1().PersistentVolumeClaims(metav1.NamespaceAll).List(context.Background(), metav1.ListOptions{})
 	if err != nil {
@@ -357,7 +292,7 @@ func (k *KubeConfig) GetPersistentVolumeClaims() ([]PersistentVolumeClaimItem, e
 	return persistentVolumeClaims, nil
 }
 
-// GetConfigMaps lists all the ConfigMaps across all namespaces.
+// GetConfigMaps lists all ConfigMaps across all namespaces.
 func (k *KubeConfig) GetConfigMaps() ([]ConfigMapItem, error) {
 	list, err := k.clientset.CoreV1().ConfigMaps(metav1.NamespaceAll).List(context.Background(), metav1.ListOptions{})
 	if err != nil {
@@ -375,4 +310,82 @@ func (k *KubeConfig) GetConfigMaps() ([]ConfigMapItem, error) {
 		configMaps = append(configMaps, cm)
 	}
 	return configMaps, nil
+}
+
+// GetAllServices lists all Services across all namespaces.
+func (k *KubeConfig) GetAllServices() ([]ServiceItem, error) {
+	svcList, err := k.clientset.CoreV1().Services(metav1.NamespaceAll).List(context.Background(), metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	var services []ServiceItem
+	for _, svc := range svcList.Items {
+		var externalIP string
+		if len(svc.Status.LoadBalancer.Ingress) > 0 {
+			externalIP = svc.Status.LoadBalancer.Ingress[0].IP
+		}
+
+		// Calculate Age in seconds
+		ageInSeconds := time.Since(svc.ObjectMeta.CreationTimestamp.Time).Seconds()
+		// Convert Age to days
+		ageInDays := int(ageInSeconds / (60 * 60 * 24)) // convert seconds to days
+
+		serviceItem := ServiceItem{
+			Namespace:   svc.Namespace,
+			Name:        svc.Name,
+			Type:        svc.Spec.Type,
+			ClusterIP:   svc.Spec.ClusterIP,
+			ExternalIP:  externalIP,
+			Ports:       svc.Spec.Ports,
+			Age:         ageInDays,
+		}
+		services = append(services, serviceItem)
+	}
+	return services, nil
+}
+
+// GetAllIngresses lists all Ingresses across all namespaces.
+func (k *KubeConfig) GetAllIngresses() ([]IngressItem, error) {
+	ingList, err := k.clientset.NetworkingV1().Ingresses(metav1.NamespaceAll).List(context.Background(), metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	var ingresses []IngressItem
+	for _, ing := range ingList.Items {
+		var rules []IngressRuleDetail
+		for _, rule := range ing.Spec.Rules {
+			var paths []string
+			for _, path := range rule.HTTP.Paths {
+				paths = append(paths, path.Path)
+			}
+			rules = append(rules, IngressRuleDetail{
+				Host:  rule.Host,
+				Paths: paths,
+			})
+		}
+
+		var defaultBackend IngressBackendDetail
+		if ing.Spec.DefaultBackend != nil {
+			defaultBackend = IngressBackendDetail{
+				ServiceName: ing.Spec.DefaultBackend.Service.Name,
+				ServicePort: ing.Spec.DefaultBackend.Service.Port.String(),
+			}
+		}
+
+		// Calculate Age
+		ageInSeconds := time.Since(ing.ObjectMeta.CreationTimestamp.Time).Seconds()
+		ageInDays := int(ageInSeconds / (60 * 60 * 24))
+
+		ingressItem := IngressItem{
+			Namespace:      ing.Namespace,
+			Name:           ing.Name,
+			Hosts:          rules,
+			DefaultBackend: defaultBackend,
+			Age:            ageInDays,
+		}
+		ingresses = append(ingresses, ingressItem)
+	}
+	return ingresses, nil
 }

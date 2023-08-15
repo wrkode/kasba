@@ -89,6 +89,10 @@ func GetInfo() {
 	if err != nil {
 		fmt.Printf("Error getting ConfigMaps %v\n", err)
 	}
+	templateData.Services, err = kubeconfig.GetAllServices()
+	if err != nil {
+		fmt.Printf("Error getting Serices %v\n", err)
+	}
 
 }
 
