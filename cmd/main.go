@@ -89,13 +89,35 @@ func GetInfo() {
 	if err != nil {
 		fmt.Printf("Error getting ConfigMaps %v\n", err)
 	}
+
 	templateData.Services, err = kubeconfig.GetAllServices()
 	if err != nil {
 		fmt.Printf("Error getting Serices %v\n", err)
 	}
+
 	templateData.Ingresses, err = kubeconfig.GetAllIngresses()
 	if err != nil {
 		fmt.Printf("Error getting Ingresses %v\n", err)
+	}
+
+	templateData.ClusterRoles, err = kubeconfig.GetAllClusterRoles()
+	if err != nil {
+		fmt.Printf("Error getting ClusterRoles %v\n", err)
+	}
+
+	templateData.ClusterRoleBindings, err = kubeconfig.GetAllClusterRoleBindings()
+	if err != nil {
+		fmt.Printf("Error getting ClusterRoleBindings %v\n", err)
+	}
+
+	templateData.ServiceAccounts, err = kubeconfig.GetAllServiceAccounts()
+	if err != nil {
+		fmt.Printf("Error getting Service Accounts %v\n", err)
+	}
+
+	templateData.NetworkPolicies, err = kubeconfig.GetAllNetworkPolicies()
+	if err != nil {
+		fmt.Printf("Error getting Network Policies %v\n", err)
 	}
 }
 

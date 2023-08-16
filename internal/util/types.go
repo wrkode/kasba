@@ -2,6 +2,8 @@ package util
 
 import (
 	v1 "k8s.io/api/core/v1"
+	v1net "k8s.io/api/networking/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -104,4 +106,33 @@ type IngressItem struct {
 	DefaultBackend IngressBackendDetail // This will capture the default backend, if any
 	Addresses      []string
 	Age       int
+}
+
+// ClusterRoleItem simplified to just verbs for now, can be expanded to include resources, API groups, etc.
+type ClusterRoleItem struct {
+	Name  string
+	Verbs []string
+}
+
+type ClusterRoleBindingItem struct {
+	Name     string
+	RoleName string // Name of the ClusterRole that this ClusterRoleBinding refers to
+	Subjects []rbacv1.Subject // List of subjects associated with this ClusterRoleBinding
+}
+
+type ServiceAccountItem struct {
+	Name      string
+	Namespace string
+	Secrets   int    // Count of associated secrets
+	Age       string // Age represented in a human-readable format (hours or days) - might need to change all other types
+}
+
+type NetworkPolicyItem struct {
+	Name      string
+	Namespace string
+	PodSelector metav1.LabelSelector
+	Ingress     []v1net.NetworkPolicyIngressRule
+	Egress      []v1net.NetworkPolicyEgressRule
+	PolicyTypes []v1net.PolicyType
+	Age        string
 }

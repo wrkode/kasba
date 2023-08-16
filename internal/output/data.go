@@ -20,5 +20,9 @@ type TemplateData struct {
 	ConfigMaps             []util.ConfigMapItem
 	Services               []util.ServiceItem
 	Ingresses              []util.IngressItem
+	ClusterRoles           []util.ClusterRoleItem
+	ClusterRoleBindings    []util.ClusterRoleBindingItem
+	ServiceAccounts        []util.ServiceAccountItem
+	NetworkPolicies                []util.NetworkPolicyItem
 	Errors                 util.Errors
 }

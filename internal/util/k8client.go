@@ -401,3 +401,111 @@ func (k *KubeConfig) GetAllIngresses() ([]IngressItem, error) {
 	}
 	return ingresses, nil
 }
+
+// GetAllClusterRoles lists all ClusterRoles defined.
+func (k *KubeConfig) GetAllClusterRoles() ([]ClusterRoleItem, error) {
+	roles, err := k.clientset.RbacV1().ClusterRoles().List(context.Background(), metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	var roleItems []ClusterRoleItem
+	for _, role := range roles.Items {
+		verbs := []string{} // Collecting all verbs
+		for _, rule := range role.Rules {
+			for _, verb := range rule.Verbs {
+				verbs = append(verbs, verb)
+			}
+		}
+		roleItem := ClusterRoleItem{
+			Name:  role.Name,
+			Verbs: verbs,
+		}
+		roleItems = append(roleItems, roleItem)
+	}
+	return roleItems, nil
+}
+// GetAllClusterRoleBindings lists all ClusterRolesBindings defined.
+func (k *KubeConfig) GetAllClusterRoleBindings() ([]ClusterRoleBindingItem, error) {
+	crbList, err := k.clientset.RbacV1().ClusterRoleBindings().List(context.Background(), metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	var clusterRoleBindings []ClusterRoleBindingItem
+	for _, crb := range crbList.Items {
+		crbItem := ClusterRoleBindingItem{
+			Name:     crb.Name,
+			RoleName: crb.RoleRef.Name,
+			Subjects: crb.Subjects,
+		}
+		clusterRoleBindings = append(clusterRoleBindings, crbItem)
+	}
+	return clusterRoleBindings, nil
+}
+
+// GetAllServiceAccounts lists all Service Accounts defined
+func (k *KubeConfig) GetAllServiceAccounts() ([]ServiceAccountItem, error) {
+	serviceAccountList, err := k.clientset.CoreV1().ServiceAccounts(metav1.NamespaceAll).List(context.Background(), metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	var serviceAccounts []ServiceAccountItem
+	for _, sa := range serviceAccountList.Items {
+		age := time.Since(sa.ObjectMeta.CreationTimestamp.Time)
+		ageStr := ""
+
+		// Convert age to hours and days
+		totalHours := int(age.Hours())
+		if totalHours < 24 {
+			ageStr = fmt.Sprintf("%dh", totalHours)
+		} else {
+			days := totalHours / 24
+			ageStr = fmt.Sprintf("%dd", days)
+		}
+
+		serviceAccount := ServiceAccountItem{
+			Name:      sa.Name,
+			Namespace: sa.Namespace,
+			Secrets:   len(sa.Secrets),
+			Age:       ageStr,
+		}
+		serviceAccounts = append(serviceAccounts, serviceAccount)
+	}
+	return serviceAccounts, nil
+}
+
+// GetAllNetworkPolicies Implements a method to fetch all network policies
+func (k *KubeConfig) GetAllNetworkPolicies() ([]NetworkPolicyItem, error) {
+	netPolList, err := k.clientset.NetworkingV1().NetworkPolicies(metav1.NamespaceAll).List(context.Background(), metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	var netPolicies []NetworkPolicyItem
+	for _, netPol := range netPolList.Items {
+		age := time.Since(netPol.ObjectMeta.CreationTimestamp.Time)
+
+		// Convert age to hours or days
+		var ageStr string
+		if age.Hours() < 24 {
+			ageStr = fmt.Sprintf("%.0fh", age.Hours())
+		} else {
+			ageStr = fmt.Sprintf("%.0fd", age.Hours()/24)
+		}
+
+		netPolItem := NetworkPolicyItem{
+			Name:        netPol.Name,
+			Namespace:   netPol.Namespace,
+			PodSelector: netPol.Spec.PodSelector,
+			Ingress:     netPol.Spec.Ingress,
+			Egress:      netPol.Spec.Egress,
+			PolicyTypes: netPol.Spec.PolicyTypes,
+			Age:         ageStr,
+		}
+		netPolicies = append(netPolicies, netPolItem)
+	}
+
+	return netPolicies, nil
+}
