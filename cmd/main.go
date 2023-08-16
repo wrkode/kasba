@@ -104,6 +104,11 @@ func GetInfo() {
 	if err != nil {
 		fmt.Printf("Error getting ClusterRoles %v\n", err)
 	}
+
+	templateData.ClusterRoleBindings, err = kubeconfig.GetAllClusterRoleBindings()
+	if err != nil {
+		fmt.Printf("Error getting ClusterRoleBindings %v\n", err)
+	}
 }
 
 func Run() {

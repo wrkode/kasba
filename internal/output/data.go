@@ -21,5 +21,6 @@ type TemplateData struct {
 	Services               []util.ServiceItem
 	Ingresses              []util.IngressItem
 	ClusterRoles           []util.ClusterRoleItem
+	ClusterRoleBindings    []util.ClusterRoleBindingItem
 	Errors                 util.Errors
 }

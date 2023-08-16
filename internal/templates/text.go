@@ -164,7 +164,6 @@ Namespace: {{ $ingressItem.Namespace }}
 
 --- RBAC and Security ---
 Cluster Roles:
-
 {{- $currentRole := "" -}}
 {{- range $index, $roleItem := .ClusterRoles -}}
 {{- if ne $roleItem.Name $currentRole }}
@@ -173,6 +172,15 @@ Role Name: {{ $roleItem.Name }}
 {{- end }}
   Verbs: [{{- range $verbIndex, $verb := $roleItem.Verbs}}{{if $verbIndex}}, {{end}}{{ $verb }}{{- end }}]
 {{- end }}
-{{- end }}
 
+Cluster Role Bindings:
+{{- range $index, $crbItem := .ClusterRoleBindings -}}
+CRB Name: {{ $crbItem.Name }}
+  RoleName: {{ $crbItem.RoleName }}
+    Subjects: 
+  {{- range $subjectsIndex, $subject := $crbItem.Subjects }}
+    - Kind: {{ $subject.Kind }}, Name: {{ $subject.Name }}, {{ if $subject.Namespace }}Namespace: {{ $subject.Namespace }},{{ end }} APIGroup: {{ $subject.APIGroup }}
+  {{- end }}
+{{- end }}
+{{- end }}
 `

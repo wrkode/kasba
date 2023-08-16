@@ -425,3 +425,21 @@ func (k *KubeConfig) GetAllClusterRoles() ([]ClusterRoleItem, error) {
 	}
 	return roleItems, nil
 }
+// GetAllClusterRoleBindings lists all ClusterRolesBindings defined.
+func (k *KubeConfig) GetAllClusterRoleBindings() ([]ClusterRoleBindingItem, error) {
+	crbList, err := k.clientset.RbacV1().ClusterRoleBindings().List(context.Background(), metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	var clusterRoleBindings []ClusterRoleBindingItem
+	for _, crb := range crbList.Items {
+		crbItem := ClusterRoleBindingItem{
+			Name:     crb.Name,
+			RoleName: crb.RoleRef.Name,
+			Subjects: crb.Subjects,
+		}
+		clusterRoleBindings = append(clusterRoleBindings, crbItem)
+	}
+	return clusterRoleBindings, nil
+}

@@ -6,6 +6,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	rbacv1 "k8s.io/api/rbac/v1"
 )
 
 // ClusterNodes represents the structure of data to be marshalled into JSON
@@ -110,4 +111,10 @@ type IngressItem struct {
 type ClusterRoleItem struct {
 	Name  string
 	Verbs []string
+}
+
+type ClusterRoleBindingItem struct {
+	Name     string
+	RoleName string // Name of the ClusterRole that this ClusterRoleBinding refers to
+	Subjects []rbacv1.Subject // List of subjects associated with this ClusterRoleBinding
 }
