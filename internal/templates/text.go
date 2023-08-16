@@ -182,5 +182,17 @@ CRB Name: {{ $crbItem.Name }}
     - Kind: {{ $subject.Kind }}, Name: {{ $subject.Name }}, {{ if $subject.Namespace }}Namespace: {{ $subject.Namespace }},{{ end }} APIGroup: {{ $subject.APIGroup }}
   {{- end }}
 {{- end }}
+
+Service Accounts:
+{{- $currentNamespace := "" -}}
+{{- range $index, $saItem := .ServiceAccounts -}}
+{{- if ne $saItem.Namespace $currentNamespace }}
+Namespace: {{ $saItem.Namespace }}
+{{- $currentNamespace = $saItem.Namespace -}}
+{{- end }}
+    SA Name: {{ $saItem.Name }}
+      Secrets: {{ $saItem.Secrets }}
+      Age: {{ $saItem.Age }}
+{{- end }}
 {{- end }}
 `

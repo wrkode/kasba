@@ -118,3 +118,10 @@ type ClusterRoleBindingItem struct {
 	RoleName string // Name of the ClusterRole that this ClusterRoleBinding refers to
 	Subjects []rbacv1.Subject // List of subjects associated with this ClusterRoleBinding
 }
+
+type ServiceAccountItem struct {
+	Name      string
+	Namespace string
+	Secrets   int    // Count of associated secrets
+	Age       string // Age represented in a human-readable format (hours or days) - might need to change all other types
+}

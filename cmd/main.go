@@ -109,6 +109,11 @@ func GetInfo() {
 	if err != nil {
 		fmt.Printf("Error getting ClusterRoleBindings %v\n", err)
 	}
+
+	templateData.ServiceAccounts, err = kubeconfig.GetAllServiceAccounts()
+	if err != nil {
+		fmt.Printf("Error getting Service Accounts %v\n", err)
+	}
 }
 
 func Run() {

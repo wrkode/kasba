@@ -443,3 +443,35 @@ func (k *KubeConfig) GetAllClusterRoleBindings() ([]ClusterRoleBindingItem, erro
 	}
 	return clusterRoleBindings, nil
 }
+
+// GetAllServiceAccounts lists all Service Accounts defined
+func (k *KubeConfig) GetAllServiceAccounts() ([]ServiceAccountItem, error) {
+	serviceAccountList, err := k.clientset.CoreV1().ServiceAccounts(metav1.NamespaceAll).List(context.Background(), metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	var serviceAccounts []ServiceAccountItem
+	for _, sa := range serviceAccountList.Items {
+		age := time.Since(sa.ObjectMeta.CreationTimestamp.Time)
+		ageStr := ""
+
+		// Convert age to hours and days
+		totalHours := int(age.Hours())
+		if totalHours < 24 {
+			ageStr = fmt.Sprintf("%dh", totalHours)
+		} else {
+			days := totalHours / 24
+			ageStr = fmt.Sprintf("%dd", days)
+		}
+
+		serviceAccount := ServiceAccountItem{
+			Name:      sa.Name,
+			Namespace: sa.Namespace,
+			Secrets:   len(sa.Secrets),
+			Age:       ageStr,
+		}
+		serviceAccounts = append(serviceAccounts, serviceAccount)
+	}
+	return serviceAccounts, nil
+}
