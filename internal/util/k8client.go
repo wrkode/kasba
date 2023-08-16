@@ -475,3 +475,37 @@ func (k *KubeConfig) GetAllServiceAccounts() ([]ServiceAccountItem, error) {
 	}
 	return serviceAccounts, nil
 }
+
+// GetAllNetworkPolicies Implements a method to fetch all network policies
+func (k *KubeConfig) GetAllNetworkPolicies() ([]NetworkPolicyItem, error) {
+	netPolList, err := k.clientset.NetworkingV1().NetworkPolicies(metav1.NamespaceAll).List(context.Background(), metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	var netPolicies []NetworkPolicyItem
+	for _, netPol := range netPolList.Items {
+		age := time.Since(netPol.ObjectMeta.CreationTimestamp.Time)
+
+		// Convert age to hours or days
+		var ageStr string
+		if age.Hours() < 24 {
+			ageStr = fmt.Sprintf("%.0fh", age.Hours())
+		} else {
+			ageStr = fmt.Sprintf("%.0fd", age.Hours()/24)
+		}
+
+		netPolItem := NetworkPolicyItem{
+			Name:        netPol.Name,
+			Namespace:   netPol.Namespace,
+			PodSelector: netPol.Spec.PodSelector,
+			Ingress:     netPol.Spec.Ingress,
+			Egress:      netPol.Spec.Egress,
+			PolicyTypes: netPol.Spec.PolicyTypes,
+			Age:         ageStr,
+		}
+		netPolicies = append(netPolicies, netPolItem)
+	}
+
+	return netPolicies, nil
+}

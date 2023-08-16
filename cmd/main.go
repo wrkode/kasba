@@ -114,6 +114,11 @@ func GetInfo() {
 	if err != nil {
 		fmt.Printf("Error getting Service Accounts %v\n", err)
 	}
+
+	templateData.NetworkPolicies, err = kubeconfig.GetAllNetworkPolicies()
+	if err != nil {
+		fmt.Printf("Error getting Network Policies %v\n", err)
+	}
 }
 
 func Run() {

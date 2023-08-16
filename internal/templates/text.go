@@ -194,5 +194,56 @@ Namespace: {{ $saItem.Namespace }}
       Secrets: {{ $saItem.Secrets }}
       Age: {{ $saItem.Age }}
 {{- end }}
+
+Network Policies:
+{{- $currentNamespace := "" -}}
+{{- range $index, $netPolItem := .NetworkPolicies -}}
+{{- if ne $netPolItem.Namespace $currentNamespace }}
+Namespace: {{ $netPolItem.Namespace }}
+{{- $currentNamespace = $netPolItem.Namespace -}}
+{{- end }}
+    Name: {{ $netPolItem.Name }}
+      Pod Selector: {{ $netPolItem.PodSelector }}
+      Policy Types: {{ range $typeIndex, $type := $netPolItem.PolicyTypes }}{{if $typeIndex}}, {{end}}{{ $type }}{{ end }}
+      Ingress Rules:
+      {{- range $ingressIndex, $ingress := $netPolItem.Ingress }}
+        From:
+        {{- range $fromItem := $ingress.From }}
+          {{- with $fromItem.PodSelector }}
+            - PodSelector: {{ . }}
+          {{- end }}
+          {{- with $fromItem.NamespaceSelector }}
+            - NamespaceSelector: {{ . }}
+          {{- end }}
+          {{- with $fromItem.IPBlock }}
+            - IPBlock: {{ .CIDR }} Except: {{ .Except }}
+          {{- end }}
+        {{- end }}
+        Ports:
+        {{- range $portItem := $ingress.Ports }}
+          - Protocol: {{ .Protocol }} Port: {{ .Port }}
+        {{- end }}
+      {{- end }}
+      Egress Rules:
+      {{- range $egressIndex, $egress := $netPolItem.Egress }}
+        To:
+        {{- range $toItem := $egress.To }}
+          {{- with $toItem.PodSelector }}
+            - PodSelector: {{ . }}
+          {{- end }}
+          {{- with $toItem.NamespaceSelector }}
+            - NamespaceSelector: {{ . }}
+          {{- end }}
+          {{- with $toItem.IPBlock }}
+            - IPBlock: {{ .CIDR }} Except: {{ .Except }}
+          {{- end }}
+        {{- end }}
+        Ports:
+        {{- range $portItem := $egress.Ports }}
+          - Protocol: {{ .Protocol }} Port: {{ .Port }}
+        {{- end }}
+      {{- end }}
+      Age: {{ $netPolItem.Age }}
+{{- end }}
 {{- end }}
 `

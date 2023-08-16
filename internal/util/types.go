@@ -2,11 +2,12 @@ package util
 
 import (
 	v1 "k8s.io/api/core/v1"
+	v1net "k8s.io/api/networking/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-	rbacv1 "k8s.io/api/rbac/v1"
 )
 
 // ClusterNodes represents the structure of data to be marshalled into JSON
@@ -124,4 +125,14 @@ type ServiceAccountItem struct {
 	Namespace string
 	Secrets   int    // Count of associated secrets
 	Age       string // Age represented in a human-readable format (hours or days) - might need to change all other types
+}
+
+type NetworkPolicyItem struct {
+	Name      string
+	Namespace string
+	PodSelector metav1.LabelSelector
+	Ingress     []v1net.NetworkPolicyIngressRule
+	Egress      []v1net.NetworkPolicyEgressRule
+	PolicyTypes []v1net.PolicyType
+	Age        string
 }
