@@ -161,6 +161,18 @@ Namespace: {{ $ingressItem.Namespace }}
       {{- end }}
       Age: {{ $ingressItem.Age }}d
 {{- end }}
+
+--- RBAC and Security ---
+Cluster Roles:
+
+{{- $currentRole := "" -}}
+{{- range $index, $roleItem := .ClusterRoles -}}
+{{- if ne $roleItem.Name $currentRole }}
+Role Name: {{ $roleItem.Name }}
+{{- $currentRole = $roleItem.Name -}}
+{{- end }}
+  Verbs: [{{- range $verbIndex, $verb := $roleItem.Verbs}}{{if $verbIndex}}, {{end}}{{ $verb }}{{- end }}]
+{{- end }}
 {{- end }}
 
 `

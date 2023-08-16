@@ -105,3 +105,9 @@ type IngressItem struct {
 	Addresses      []string
 	Age       int
 }
+
+// ClusterRoleItem simplified to just verbs for now, can be expanded to include resources, API groups, etc.
+type ClusterRoleItem struct {
+	Name  string
+	Verbs []string
+}

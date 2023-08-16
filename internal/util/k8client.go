@@ -401,3 +401,27 @@ func (k *KubeConfig) GetAllIngresses() ([]IngressItem, error) {
 	}
 	return ingresses, nil
 }
+
+// GetAllClusterRoles lists all ClusterRoles defined.
+func (k *KubeConfig) GetAllClusterRoles() ([]ClusterRoleItem, error) {
+	roles, err := k.clientset.RbacV1().ClusterRoles().List(context.Background(), metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	var roleItems []ClusterRoleItem
+	for _, role := range roles.Items {
+		verbs := []string{} // Collecting all verbs
+		for _, rule := range role.Rules {
+			for _, verb := range rule.Verbs {
+				verbs = append(verbs, verb)
+			}
+		}
+		roleItem := ClusterRoleItem{
+			Name:  role.Name,
+			Verbs: verbs,
+		}
+		roleItems = append(roleItems, roleItem)
+	}
+	return roleItems, nil
+}
