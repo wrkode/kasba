@@ -9,5 +9,5 @@ var Version = ""
 
 func main() {
 	fmt.Println(Version)
-	cmd.Run()
+	cmd.Execute()
 }

@@ -3,21 +3,20 @@ package util
 import (
 	"context"
 	"encoding/json"
-	"flag"
 	"fmt"
 	"github.com/wrkode/kasba/internal/nodeinfo"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
+	"github.com/spf13/cobra"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
 )
-
 
 func (a *WorkloadInfo) Add(namespace string, appType string, name string) {
 	if len(a.Namespaces) == 0 {
@@ -66,31 +65,37 @@ func (a *WorkloadInfo) Add(namespace string, appType string, name string) {
 	}
 }
 
-// GetKubeConfigPath gathers/uses active kubeconfig TODO: Implement path flag
-func (k *KubeConfig) GetKubeConfigPath() error {
+// BindFlags retrieve and absoloute path from cmd line via --kubeconfig /path/to/file
+func (k *KubeConfig) BindFlags(cmd *cobra.Command) {
+	cmd.Flags().StringVar(&k.KubeconfigFlag, "kubeconfig", "", "absolute path to the kubeconfig file")
+}
+
+// GetKubeConfigPath gathers/uses active kubeconfig
+func (k *KubeConfig) GetKubeConfigPath(cmd *cobra.Command) error {
 	var err error
-	if home := homedir.HomeDir(); home != "" {
-		k.kubeconfig = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
-	} else {
-		k.kubeconfig = flag.String("kubeconfig", "", "absolute path to the kubeconfig file")
+	var kubeconfigPath string
+
+	// Check flag first
+	if k.KubeconfigFlag != "" {
+		kubeconfigPath = k.KubeconfigFlag
+	} else if envKubeConfig := os.Getenv("KUBECONFIG"); envKubeConfig != "" {
+		// Then check environment variable
+		kubeconfigPath = envKubeConfig
+	} else if home := homedir.HomeDir(); home != "" {
+		// Finally, default to ~/.kube/config
+		kubeconfigPath = filepath.Join(home, ".kube", "config")
 	}
 
-	// build Config
-	if *k.kubeconfig != "" {
-		k.config, err = clientcmd.BuildConfigFromFlags("", *k.kubeconfig)
-	} else {
-		k.config, err = rest.InClusterConfig()
+	if kubeconfigPath == "" {
+		return fmt.Errorf("no kubeconfig path provided")
 	}
 
-	// handle config error
+	k.config, err = clientcmd.BuildConfigFromFlags("", kubeconfigPath)
 	if err != nil {
 		return fmt.Errorf("failed to build config: %v", err)
 	}
 
-	// creates the clientset
 	k.clientset, err = kubernetes.NewForConfig(k.config)
-
-	// handle clientset error
 	if err != nil {
 		return fmt.Errorf("failed to create clientset: %v", err)
 	}
@@ -332,13 +337,13 @@ func (k *KubeConfig) GetAllServices() ([]ServiceItem, error) {
 		ageInDays := int(ageInSeconds / (60 * 60 * 24)) // convert seconds to days
 
 		serviceItem := ServiceItem{
-			Namespace:   svc.Namespace,
-			Name:        svc.Name,
-			Type:        svc.Spec.Type,
-			ClusterIP:   svc.Spec.ClusterIP,
-			ExternalIP:  externalIP,
-			Ports:       svc.Spec.Ports,
-			Age:         ageInDays,
+			Namespace:  svc.Namespace,
+			Name:       svc.Name,
+			Type:       svc.Spec.Type,
+			ClusterIP:  svc.Spec.ClusterIP,
+			ExternalIP: externalIP,
+			Ports:      svc.Spec.Ports,
+			Age:        ageInDays,
 		}
 		services = append(services, serviceItem)
 	}
@@ -425,6 +430,7 @@ func (k *KubeConfig) GetAllClusterRoles() ([]ClusterRoleItem, error) {
 	}
 	return roleItems, nil
 }
+
 // GetAllClusterRoleBindings lists all ClusterRolesBindings defined.
 func (k *KubeConfig) GetAllClusterRoleBindings() ([]ClusterRoleBindingItem, error) {
 	crbList, err := k.clientset.RbacV1().ClusterRoleBindings().List(context.Background(), metav1.ListOptions{})

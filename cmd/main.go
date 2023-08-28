@@ -1,11 +1,11 @@
 package cmd
 
 import (
-	"flag"
 	"fmt"
+	"github.com/spf13/cobra"
 	"github.com/wrkode/kasba/internal/output"
 	"github.com/wrkode/kasba/internal/util"
-	"log"
+	"os"
 	"time"
 
 	_ "embed"
@@ -18,21 +18,28 @@ const (
 
 var (
 	createdAt    = time.Now().Format(time.RFC850)
-	Version      = ""
+	Version      = "dev"
 	kubeconfig   util.KubeConfig
 	errors       util.Errors
 	templateData output.TemplateData
 	//kasbaID   = uuid.New().String()
+	showVersion bool
 )
 
-func GetInfo() {
+var rootCmd = &cobra.Command{
+	Use:   "KASBA",
+	Short: "Kubernetes As-Built Assessment",
+	RunE:  executeRun,
+}
+
+func GetInfo(cmd *cobra.Command) {
 	var err error
 
 	templateData.CreatedAt = createdAt
 	templateData.BOMFormat = BOMFormat
 	templateData.Version = Version
 
-	err = kubeconfig.GetKubeConfigPath()
+	err = kubeconfig.GetKubeConfigPath(cmd)
 	if errors.Add(err, true) {
 		return // return because of fatal error
 	}
@@ -121,15 +128,33 @@ func GetInfo() {
 	}
 }
 
-func Run() {
-	flag.Parse()
+func init() {
+	kubeconfig.BindFlags(rootCmd)
+	rootCmd.PersistentFlags().BoolVar(&showVersion, "version", false, "display the version number")
+}
 
-	GetInfo()
+func Execute() {
+	if err := rootCmd.Execute(); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+}
+func executeRun(cmd *cobra.Command, args []string) error {
+	if err := kubeconfig.GetKubeConfigPath(cmd); err != nil {
+		return err
+	}
+	if showVersion {
+		fmt.Printf("KASBA Version: %s\n", Version)
+		return nil
+	}
+
+	GetInfo(cmd)
 
 	templateData.Errors = errors
 
-	err := output.AsText(templateData)
-	if err != nil {
-		log.Fatalf("Unable to Parse Template: %v", err)
+	if err := output.AsText(templateData); err != nil {
+		return fmt.Errorf("unable to parse template: %v", err)
 	}
+
+	return nil
 }
