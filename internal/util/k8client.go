@@ -5,17 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/wrkode/kasba/internal/nodeinfo"
-	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/client-go/util/homedir"
 )
 
 func (a *WorkloadInfo) Add(namespace string, appType string, name string) {
@@ -68,39 +63,6 @@ func (a *WorkloadInfo) Add(namespace string, appType string, name string) {
 // BindFlags retrieve and absoloute path from cmd line via --kubeconfig /path/to/file
 func (k *KubeConfig) BindFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVar(&k.KubeconfigFlag, "kubeconfig", "", "absolute path to the kubeconfig file")
-}
-
-// GetKubeConfigPath gathers/uses active kubeconfig
-func (k *KubeConfig) GetKubeConfigPath(cmd *cobra.Command) error {
-	var err error
-	var kubeconfigPath string
-
-	// Check flag first
-	if k.KubeconfigFlag != "" {
-		kubeconfigPath = k.KubeconfigFlag
-	} else if envKubeConfig := os.Getenv("KUBECONFIG"); envKubeConfig != "" {
-		// Then check environment variable
-		kubeconfigPath = envKubeConfig
-	} else if home := homedir.HomeDir(); home != "" {
-		// Finally, default to ~/.kube/config
-		kubeconfigPath = filepath.Join(home, ".kube", "config")
-	}
-
-	if kubeconfigPath == "" {
-		return fmt.Errorf("no kubeconfig path provided")
-	}
-
-	k.config, err = clientcmd.BuildConfigFromFlags("", kubeconfigPath)
-	if err != nil {
-		return fmt.Errorf("failed to build config: %v", err)
-	}
-
-	k.clientset, err = kubernetes.NewForConfig(k.config)
-	if err != nil {
-		return fmt.Errorf("failed to create clientset: %v", err)
-	}
-
-	return nil
 }
 
 // NamespaceExists checks if the given namespace exists in the cluster.
