@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/wrkode/kasba/internal/nodeinfo"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -18,6 +19,8 @@ import (
 	"k8s.io/client-go/util/homedir"
 )
 
+var kubeconfigFlag = flag.String("kubeconfig", "", "(optional) absolute path to the kubeconfig file")
+var VersionFlag = flag.Bool("version", false, "print version information and exit")
 
 func (a *WorkloadInfo) Add(namespace string, appType string, name string) {
 	if len(a.Namespaces) == 0 {
@@ -66,20 +69,23 @@ func (a *WorkloadInfo) Add(namespace string, appType string, name string) {
 	}
 }
 
-// GetKubeConfigPath gathers/uses active kubeconfig TODO: Implement path flag
+// GetKubeConfigPath gathers/uses --kubeconfig, KUBECONFIG EnvVar or active kubeconfig context from ~/.kube/config
 func (k *KubeConfig) GetKubeConfigPath() error {
 	var err error
-	if home := homedir.HomeDir(); home != "" {
-		k.kubeconfig = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
-	} else {
-		k.kubeconfig = flag.String("kubeconfig", "", "absolute path to the kubeconfig file")
-	}
 
-	// build Config
-	if *k.kubeconfig != "" {
-		k.config, err = clientcmd.BuildConfigFromFlags("", *k.kubeconfig)
+	// If the flag is set, it takes the highest priority.
+	if *kubeconfigFlag != "" {
+		k.config, err = clientcmd.BuildConfigFromFlags("", *kubeconfigFlag)
+	} else if envKubeconfig := os.Getenv("KUBECONFIG"); envKubeconfig != "" {
+		// If the KUBECONFIG environment variable is set, use it.
+		k.config, err = clientcmd.BuildConfigFromFlags("", envKubeconfig)
 	} else {
-		k.config, err = rest.InClusterConfig()
+		// Otherwise, fall back to the default kubeconfig location.
+		if home := homedir.HomeDir(); home != "" {
+			k.config, err = clientcmd.BuildConfigFromFlags("", filepath.Join(home, ".kube", "config"))
+		} else {
+			k.config, err = rest.InClusterConfig()
+		}
 	}
 
 	// handle config error
@@ -332,13 +338,13 @@ func (k *KubeConfig) GetAllServices() ([]ServiceItem, error) {
 		ageInDays := int(ageInSeconds / (60 * 60 * 24)) // convert seconds to days
 
 		serviceItem := ServiceItem{
-			Namespace:   svc.Namespace,
-			Name:        svc.Name,
-			Type:        svc.Spec.Type,
-			ClusterIP:   svc.Spec.ClusterIP,
-			ExternalIP:  externalIP,
-			Ports:       svc.Spec.Ports,
-			Age:         ageInDays,
+			Namespace:  svc.Namespace,
+			Name:       svc.Name,
+			Type:       svc.Spec.Type,
+			ClusterIP:  svc.Spec.ClusterIP,
+			ExternalIP: externalIP,
+			Ports:      svc.Spec.Ports,
+			Age:        ageInDays,
 		}
 		services = append(services, serviceItem)
 	}
@@ -425,6 +431,7 @@ func (k *KubeConfig) GetAllClusterRoles() ([]ClusterRoleItem, error) {
 	}
 	return roleItems, nil
 }
+
 // GetAllClusterRoleBindings lists all ClusterRolesBindings defined.
 func (k *KubeConfig) GetAllClusterRoleBindings() ([]ClusterRoleBindingItem, error) {
 	crbList, err := k.clientset.RbacV1().ClusterRoleBindings().List(context.Background(), metav1.ListOptions{})

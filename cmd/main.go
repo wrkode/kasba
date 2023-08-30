@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"flag"
 	"fmt"
 	"github.com/wrkode/kasba/internal/output"
 	"github.com/wrkode/kasba/internal/util"
@@ -14,11 +13,11 @@ import (
 const (
 	SUSE      = "SUSE Software Solutions"
 	BOMFormat = "kasba"
+	Version   = "v0.0.0-dev"
 )
 
 var (
 	createdAt    = time.Now().Format(time.RFC850)
-	Version      = ""
 	kubeconfig   util.KubeConfig
 	errors       util.Errors
 	templateData output.TemplateData
@@ -122,7 +121,6 @@ func GetInfo() {
 }
 
 func Run() {
-	flag.Parse()
 
 	GetInfo()
 
