@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"flag"
 	"fmt"
 	"github.com/wrkode/kasba/internal/output"
 	"github.com/wrkode/kasba/internal/util"
@@ -122,7 +121,6 @@ func GetInfo() {
 }
 
 func Run() {
-	flag.Parse()
 
 	GetInfo()
 

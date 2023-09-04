@@ -77,7 +77,7 @@ type ConfigMapItem struct {
 }
 
 type ServiceItem struct {
-	Namespace   string
+	Namespace  string
 	Name       string
 	Type       v1.ServiceType
 	ClusterIP  string
@@ -100,12 +100,12 @@ type IngressRuleDetail struct {
 
 // IngressItem represents an Ingress in the cluster
 type IngressItem struct {
-	Namespace string
-	Name      string
-	Hosts     []IngressRuleDetail
+	Namespace      string
+	Name           string
+	Hosts          []IngressRuleDetail
 	DefaultBackend IngressBackendDetail // This will capture the default backend, if any
 	Addresses      []string
-	Age       int
+	Age            int
 }
 
 // ClusterRoleItem simplified to just verbs for now, can be expanded to include resources, API groups, etc.
@@ -116,7 +116,7 @@ type ClusterRoleItem struct {
 
 type ClusterRoleBindingItem struct {
 	Name     string
-	RoleName string // Name of the ClusterRole that this ClusterRoleBinding refers to
+	RoleName string           // Name of the ClusterRole that this ClusterRoleBinding refers to
 	Subjects []rbacv1.Subject // List of subjects associated with this ClusterRoleBinding
 }
 
@@ -128,11 +128,11 @@ type ServiceAccountItem struct {
 }
 
 type NetworkPolicyItem struct {
-	Name      string
-	Namespace string
+	Name        string
+	Namespace   string
 	PodSelector metav1.LabelSelector
 	Ingress     []v1net.NetworkPolicyIngressRule
 	Egress      []v1net.NetworkPolicyEgressRule
 	PolicyTypes []v1net.PolicyType
-	Age        string
+	Age         string
 }
