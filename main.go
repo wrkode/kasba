@@ -8,11 +8,13 @@ import (
 	"os"
 )
 
+var Version = ""
+
 func main() {
 	flag.Parse()
 
 	if *util.VersionFlag {
-		fmt.Println("Version:", cmd.Version)
+		fmt.Println("Version:", Version)
 		os.Exit(0)
 	}
 	cmd.Run()
